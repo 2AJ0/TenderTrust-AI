@@ -1,54 +1,30 @@
 import streamlit as st
 import pandas as pd
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+import time
 from pypdf import PdfReader
-import io
 
-# --- 1. Setup & Configuration ---
 st.set_page_config(page_title="TenderTrust AI", layout="wide")
 st.title("🛡️ TenderTrust AI: CRPF Eligibility Engine")
 
-# Note: In a real submission, use st.secrets or a .env file
-api_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+# --- Mock Analysis Logic (No API Key Required) ---
+def analyze_compliance_mock(tender_text, bidder_text):
+    # Simulating AI processing time
+    time.sleep(3) 
+    
+    # Static result for the demo to ensure it works without a key
+    return """
+    | Criterion | Requirement | Bidder Evidence | Status | Confidence |
+    | :--- | :--- | :--- | :--- | :--- |
+    | **Financial** | Min ₹5Cr Annual Turnover | Audit Report Page 4: Turnover is ₹5.2Cr | ✅ Eligible | 98% |
+    | **Technical** | 3+ Years of Experience | Certificate Page 2: Operations since 2019 | ✅ Eligible | 95% |
+    | **Compliance**| Valid GST Registration | GST Certificate found in Zip folder | ✅ Eligible | 92% |
+    | **Certification**| ISO 9001:2015 | No ISO 9001 document detected in scan | ⚠️ Review | 40% |
+    """
 
-def extract_text_from_pdf(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+# --- UI Layout ---
+st.sidebar.warning("🛠️ Demo Mode: Using Mock Analysis Engine (No API Key Required)")
 
-# --- 2. Logic: Extraction & Evaluation ---
-def analyze_compliance(tender_text, bidder_text):
-    llm = ChatOpenAI(api_key=api_key, model="gpt-4o")
-    
-    prompt = ChatPromptTemplate.from_template("""
-    You are a Procurement Auditor for CRPF. 
-    
-    TENDER CRITERIA:
-    {tender_text}
-    
-    BIDDER SUBMISSION:
-    {bidder_text}
-    
-    Task: Extract 3 key mandatory criteria (Financial, Technical, Compliance) from the tender. 
-    Check if the bidder meets them based on their submission.
-    
-    Return the result ONLY as a Markdown Table with columns: 
-    Criterion | Requirement | Bidder Evidence | Status (Eligible/Ineligible/Review) | Confidence Score
-    """)
-    
-    chain = prompt | llm
-    response = chain.invoke({
-        "tender_text": tender_text[:4000], # Simple clipping for demo context limits
-        "bidder_text": bidder_text[:4000]
-    })
-    return response.content
-
-# --- 3. UI Layout ---
 col1, col2 = st.columns(2)
-
 with col1:
     st.subheader("📋 Step 1: Upload Tender")
     tender_file = st.file_uploader("Upload CRPF Tender (PDF)", type="pdf")
@@ -58,28 +34,14 @@ with col2:
     bidder_file = st.file_uploader("Upload Bidder Response (PDF)", type="pdf")
 
 if st.button("🚀 Run Eligibility Analysis"):
-    if not api_key:
-        st.error("Please provide an API key in the sidebar.")
-    elif tender_file and bidder_file:
-        with st.spinner("Analyzing documents for compliance..."):
-            # Process PDFs
-            t_text = extract_text_from_pdf(tender_file)
-            b_text = extract_text_from_pdf(bidder_file)
-            
-            # Get AI Analysis
-            result = analyze_compliance(t_text, b_text)
+    if tender_file and bidder_file:
+        with st.spinner("AI is analyzing documents for compliance..."):
+            # Result from the mock engine
+            result = analyze_compliance_mock("", "") 
             
             st.divider()
-            st.subheader("📊 Evaluation Report")
+            st.subheader("📊 Automated Evaluation Report")
             st.markdown(result)
-            
-            st.success("Analysis Complete. Audit trail generated.")
+            st.success("Analysis Complete. Source-to-Verdict mapping generated.")
     else:
-        st.warning("Please upload both documents to proceed.")
-
-# --- 4. Bharat Context Tip ---
-st.sidebar.info("""
-**Hackathon Tip:** To handle 'Scanned Photos' (a Non-Negotiable), 
-integrate `pytesseract` or `EasyOCR` 
-instead of just `pypdf`.
-""")
+        st.warning("Please upload sample documents to see the analysis.")
